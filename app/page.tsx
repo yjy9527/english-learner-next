@@ -1,40 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { DonutChart, BarChartWidget } from "@/components/ChartWidget";
 import Link from "next/link";
 
-interface Stats {
-  totalNodes: number;
-  byType: { type: string; count: number }[];
-  byCefr: { level: string; count: number }[];
-  progress: {
-    total: number; mastered: number; learning: number;
-    reviewing: number; notStarted: number; masteryRate: number;
-  };
-  todayDue: number;
-}
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-
-  useEffect(() => {
-    fetch("/api/dashboard/stats")
-      .then((r) => r.json())
-      .then(setStats)
-      .catch(console.error);
-  }, []);
+  const { data: stats } = useSWR("/api/dashboard/stats", fetcher, {
+    revalidateOnFocus: false, // 切回标签页不重新请求
+  });
 
   if (!stats) {
     return (
-      <div className="p-4 md:p-6">
+      <div className="p-4 md:p-6 animate-pulse">
         <h2 className="text-xl font-bold text-gray-800 mb-4">📊 仪表盘</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-              <div className="skeleton h-4 w-16 mb-1" />
-              <div className="skeleton h-7 w-12" />
-            </div>
+            <div key={i} className="bg-white rounded-lg p-4 shadow-sm border"><div className="skeleton h-7 w-12" /></div>
           ))}
         </div>
       </div>
@@ -49,32 +32,23 @@ export default function DashboardPage() {
     <div className="p-4 md:p-6">
       <h2 className="text-xl font-bold text-gray-800 mb-4">📊 仪表盘</h2>
 
-      {/* 概览卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-xs text-gray-500">知识点总数</div>
-          <div className="text-2xl font-bold text-primary">{stats.totalNodes}</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-xs text-gray-500">掌握率</div>
-          <div className="text-2xl font-bold text-green-600">{stats.progress.masteryRate}%</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-xs text-gray-500">今日待复习</div>
-          <div className="text-2xl font-bold text-orange-500">{stats.todayDue}</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <div className="text-xs text-gray-500">学习中</div>
-          <div className="text-2xl font-bold text-blue-500">{stats.progress.learning + stats.progress.reviewing}</div>
-        </div>
+        {[
+          { label: "知识点总数", value: stats.totalNodes, color: "text-primary" },
+          { label: "掌握率", value: `${stats.progress.masteryRate}%`, color: "text-green-600" },
+          { label: "今日待复习", value: stats.todayDue, color: "text-orange-500" },
+          { label: "学习中", value: stats.progress.learning + stats.progress.reviewing, color: "text-blue-500" },
+        ].map((card, i) => (
+          <div key={i} className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 transition hover:shadow-md">
+            <div className="text-xs text-gray-500">{card.label}</div>
+            <div className={`text-2xl font-bold ${card.color} transition-all duration-300`}>{card.value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* SRS 快捷入口 */}
       {stats.todayDue > 0 && (
-        <Link
-          href="/review"
-          className="block mb-6 bg-gradient-to-r from-primary to-indigo-400 rounded-lg p-4 text-white hover:opacity-95 transition"
-        >
+        <Link href="/review"
+          className="block mb-6 bg-gradient-to-r from-primary to-indigo-400 rounded-lg p-4 text-white hover:opacity-95 transition transform hover:scale-[1.01]">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold">🔄 SRS 间隔复习</h3>
@@ -85,24 +59,17 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      {/* 图表区 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition">
           <DonutChart
             title="知识点类型分布"
-            data={stats.byType.map((t) => ({
-              name: typeLabels[t.type] || t.type,
-              value: t.count,
-            }))}
+            data={stats.byType.map((t: any) => ({ name: typeLabels[t.type] || t.type, value: t.count }))}
           />
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-lg p-4 shadow-sm border hover:shadow-md transition">
           <BarChartWidget
             title="CEFR 等级分布"
-            data={stats.byCefr.map((c) => ({
-              name: c.level,
-              count: c.count,
-            }))}
+            data={stats.byCefr.map((c: any) => ({ name: c.level, count: c.count }))}
           />
         </div>
       </div>
