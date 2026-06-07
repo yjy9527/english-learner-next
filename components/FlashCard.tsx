@@ -27,16 +27,20 @@ export default function FlashCard({ cards: initialCards }: { cards: CardData[] }
         e.preventDefault();
         setFlipped((f) => !f);
       } else if (e.key === "ArrowLeft") {
-        prev();
+        setIndex((i) => (i > 0 ? i - 1 : cards.length - 1));
       } else if (e.key === "ArrowRight") {
-        next();
+        setIndex((i) => (i < cards.length - 1 ? i + 1 : 0));
       } else if (e.key === "s" || e.key === "S") {
-        speak();
+        if ("speechSynthesis" in window) {
+          const utter = new SpeechSynthesisUtterance(cards[index].title);
+          utter.lang = "en-US"; utter.rate = 0.8;
+          speechSynthesis.speak(utter);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index]);
+  }, [index, cards]);
 
   if (!cards.length) {
     return (
@@ -156,3 +160,6 @@ export default function FlashCard({ cards: initialCards }: { cards: CardData[] }
         <span><kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">Space</kbd> 翻转</span>
         <span><kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">S</kbd> 朗读</span>
       </div>
+    </div>
+  );
+}

@@ -56,7 +56,7 @@ export default function ReviewCard({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [flipped, graded]);
+  }, [flipped, graded, onDone]);
 
   const ratingButtons = [
     { rating: 0, label: "完全忘了", color: "bg-red-500 hover:bg-red-600" },
