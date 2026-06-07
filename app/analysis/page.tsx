@@ -3,11 +3,10 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { DonutChart, BarChartWidget } from "@/components/ChartWidget";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { swrConfig, fetcher } from "@/lib/swr-config";
 
 export default function AnalysisPage() {
-  const { data } = useSWR("/api/analysis/overview", fetcher, { revalidateOnFocus: false });
+  const { data } = useSWR("/api/analysis/overview", fetcher, swrConfig);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [diagLoading, setDiagLoading] = useState(false);
 

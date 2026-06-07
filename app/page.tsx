@@ -2,14 +2,11 @@
 
 import useSWR from "swr";
 import { DonutChart, BarChartWidget } from "@/components/ChartWidget";
+import { swrConfig, fetcher } from "@/lib/swr-config";
 import Link from "next/link";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
 export default function DashboardPage() {
-  const { data: stats } = useSWR("/api/dashboard/stats", fetcher, {
-    revalidateOnFocus: false, // 切回标签页不重新请求
-  });
+  const { data: stats } = useSWR("/api/dashboard/stats", fetcher, swrConfig);
 
   if (!stats) {
     return (

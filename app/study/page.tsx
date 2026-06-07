@@ -3,15 +3,15 @@
 import { useState } from "react";
 import useSWR from "swr";
 import FlashCard from "@/components/FlashCard";
+import { swrConfig, fetcher } from "@/lib/swr-config";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
 type Tab = "flashcard" | "grammar" | "list";
 
 export default function StudyPage() {
   const [activeTab, setActiveTab] = useState<Tab>("flashcard");
 
-  const { data: vocab } = useSWR("/api/knowledge?type=vocabulary&pageSize=100", fetcher, { revalidateOnFocus: false });
-  const { data: allList } = useSWR("/api/knowledge?pageSize=100", fetcher, { revalidateOnFocus: false });
+  const { data: vocab } = useSWR("/api/knowledge?type=vocabulary&pageSize=100", fetcher, swrConfig);
+  const { data: allList } = useSWR("/api/knowledge?pageSize=100", fetcher, swrConfig);
 
   const tabs = [
     { key: "flashcard" as Tab, label: "单词闪卡", icon: "🃏" },

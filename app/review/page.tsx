@@ -3,13 +3,12 @@
 import { useState } from "react";
 import useSWR from "swr";
 import ReviewCard from "@/components/ReviewCard";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { swrConfig, fetcher } from "@/lib/swr-config";
 
 export default function ReviewPage() {
   const [index, setIndex] = useState(0);
-  const { data: dueData, mutate: refreshDue } = useSWR("/api/review/due", fetcher, { revalidateOnFocus: false });
-  const { data: stats } = useSWR("/api/review/stats", fetcher, { revalidateOnFocus: false });
+  const { data: dueData, mutate: refreshDue } = useSWR("/api/review/due", fetcher, swrConfig);
+  const { data: stats } = useSWR("/api/review/stats", fetcher, swrConfig);
 
   const cards = dueData?.cards || [];
   const loading = !dueData;
