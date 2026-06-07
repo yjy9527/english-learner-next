@@ -1,38 +1,40 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { TabKey } from "@/components/MainApp";
 
-const navItems = [
-  { href: "/", label: "仪表盘", icon: "📊" },
-  { href: "/study", label: "学习", icon: "📖" },
-  { href: "/review", label: "复习", icon: "🔄" },
-  { href: "/practice", label: "练习", icon: "✏️" },
-  { href: "/analysis", label: "分析", icon: "📈" },
+interface BottomNavProps {
+  activeTab: TabKey;
+  onTabChange: (tab: TabKey) => void;
+}
+
+const navItems: { key: TabKey; label: string; icon: string }[] = [
+  { key: "dashboard", label: "仪表盘", icon: "📊" },
+  { key: "study", label: "学习", icon: "📖" },
+  { key: "review", label: "复习", icon: "🔄" },
+  { key: "practice", label: "练习", icon: "✏️" },
+  { key: "analysis", label: "分析", icon: "📈" },
 ];
 
-export default function BottomNav() {
-  const pathname = usePathname();
-
-  // 登录页不显示导航
-  if (pathname === "/login") return null;
-
+/** 移动端底部导航——纯按钮，支持暗色模式 */
+export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 z-50 transition-colors">
       <div className="flex justify-around py-1 safe-area-bottom">
         {navItems.map((item) => {
-          const active = pathname === item.href;
+          const active = activeTab === item.key;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center py-1 px-2 text-xs transition ${
-                active ? "text-primary font-semibold" : "text-gray-500"
+            <button
+              key={item.key}
+              onClick={() => onTabChange(item.key)}
+              className={`flex flex-col items-center py-1 px-2 text-xs transition cursor-pointer ${
+                active
+                  ? "text-primary font-semibold dark:text-indigo-300"
+                  : "text-gray-500 dark:text-slate-500"
               }`}
             >
               <span className="text-xl">{item.icon}</span>
               <span>{item.label}</span>
-            </Link>
+            </button>
           );
         })}
       </div>
