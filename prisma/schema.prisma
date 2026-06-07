@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// 英语学习助手 · 数据库 Schema（11 张表）
+// Prisma 7.8 + Neon Postgres
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +8,271 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ============================================
+// 学科定义
+// ============================================
+model Subject {
+  id             Int       @id @default(autoincrement())
+  name           String    @unique
+  slug           String    @unique
+  description    String?
+  modelConfig    Json      @default("{}") @map("model_config")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  knowledgeNodes  KnowledgeNode[]
+  learningPaths   LearningPath[]
+  userProgresses  UserProgress[]
+  questions       Question[]
+  answerRecords   AnswerRecord[]
+  errorPatterns   ErrorPattern[]
+  reviewSchedules ReviewSchedule[]
+  topics          Topic[]
+
+  @@map("subjects")
+}
+
+// ============================================
+// 知识节点（词汇/语法/阅读/写作）
+// ============================================
+model KnowledgeNode {
+  id           Int       @id @default(autoincrement())
+  subjectId    Int       @map("subject_id")
+  nodeType     String    @map("node_type")  // vocabulary | grammar | reading | writing
+  title        String
+  cefrLevel    String    @default("B1") @map("cefr_level")
+  difficulty   Int       @default(3)
+  tags         Json      @default("[]")
+  source       String    @default("system")
+  sourceUrl    String?   @map("source_url")
+  detail       Json      @default("{}")
+  dependencies Json      @default("[]")
+  status       String    @default("active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  userProgresses  UserProgress[]
+  questions       Question[]
+  answerRecords   AnswerRecord[]
+  reviewSchedules ReviewSchedule[]
+  topicLinks      KnowledgeTopicLink[]
+
+  @@index([subjectId])
+  @@index([nodeType])
+  @@index([cefrLevel])
+  @@map("knowledge_nodes")
+}
+
+// ============================================
+// 主题分类
+// ============================================
+model Topic {
+  id          Int       @id @default(autoincrement())
+  subjectId   Int       @map("subject_id")
+  name        String
+  description String?
+  parentId    Int?      @map("parent_id")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  subject   Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  parent    Topic?               @relation("TopicHierarchy", fields: [parentId], references: [id])
+  children  Topic[]              @relation("TopicHierarchy")
+  nodeLinks KnowledgeTopicLink[]
+
+  @@index([subjectId])
+  @@map("topics")
+}
+
+// ============================================
+// 知识点-主题关联（多对多）
+// ============================================
+model KnowledgeTopicLink {
+  nodeId  Int @map("node_id")
+  topicId Int @map("topic_id")
+
+  node  KnowledgeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  topic Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([nodeId, topicId])
+  @@map("knowledge_topic_links")
+}
+
+// ============================================
+// 学习路径
+// ============================================
+model LearningPath {
+  id          Int      @id @default(autoincrement())
+  subjectId   Int      @map("subject_id")
+  name        String
+  description String?
+  nodeOrder   Json     @default("[]") @map("node_order")
+  isDefault   Int      @default(0) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@map("learning_paths")
+}
+
+// ============================================
+// 用户（认证）
+// ============================================
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  userConfig   Json      @default("{}") @map("user_config")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  progress        UserProgress[]
+  answerRecords   AnswerRecord[]
+  reviewSchedules ReviewSchedule[]
+  errorPatterns   ErrorPattern[]
+
+  @@map("users")
+}
+
+// ============================================
+// 学习进度
+// ============================================
+model UserProgress {
+  id             Int       @id @default(autoincrement())
+  subjectId      Int       @map("subject_id")
+  nodeId         Int       @map("node_id")
+  userId         Int       @map("user_id")
+  status         String    @default("not_started")
+  masteryScore   Float     @default(0) @map("mastery_score")
+  timesStudied   Int       @default(0) @map("times_studied")
+  timesCorrect   Int       @default(0) @map("times_correct")
+  timesWrong     Int       @default(0) @map("times_wrong")
+  lastStudiedAt  DateTime? @map("last_studied_at")
+  firstStudiedAt DateTime? @map("first_studied_at")
+  masteredAt     DateTime? @map("mastered_at")
+  recentErrors   Json      @default("[]") @map("recent_errors")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  subject Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  node    KnowledgeNode  @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, nodeId, userId])
+  @@index([subjectId])
+  @@index([nodeId])
+  @@index([userId])
+  @@map("user_progress")
+}
+
+// ============================================
+// 题目库
+// ============================================
+model Question {
+  id               Int       @id @default(autoincrement())
+  subjectId        Int       @map("subject_id")
+  nodeId           Int?      @map("node_id")
+  questionType     String    @map("question_type")
+  difficulty       Int       @default(3)
+  cefrLevel        String    @default("B1") @map("cefr_level")
+  content          Json
+  tags             Json      @default("[]")
+  source           String    @default("ai_generated")
+  usageCount       Int       @default(0) @map("usage_count")
+  avgScore         Float?    @map("avg_score")
+  aiPromptSnapshot String?   @map("ai_prompt_snapshot")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  subject       Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  node          KnowledgeNode? @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  answerRecords AnswerRecord[]
+
+  @@index([subjectId])
+  @@index([nodeId])
+  @@index([questionType])
+  @@map("questions")
+}
+
+// ============================================
+// 答题记录
+// ============================================
+model AnswerRecord {
+  id            Int       @id @default(autoincrement())
+  subjectId     Int       @map("subject_id")
+  questionId    Int       @map("question_id")
+  nodeId        Int?      @map("node_id")
+  userId        Int       @map("user_id")
+  userAnswer    String    @map("user_answer")
+  isCorrect     Int       @default(0) @map("is_correct")
+  score         Float     @default(0)
+  gradingResult Json      @default("{}") @map("grading_result")
+  timeSpentSec  Float?    @map("time_spent_sec")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  subject  Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  question Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  node     KnowledgeNode? @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@index([questionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("answer_records")
+}
+
+// ============================================
+// 错误模式统计
+// ============================================
+model ErrorPattern {
+  id              Int       @id @default(autoincrement())
+  subjectId       Int       @map("subject_id")
+  userId          Int       @map("user_id")
+  errorCategory   String    @map("error_category")
+  errorDetail     String    @map("error_detail")
+  occurrenceCount Int       @default(0) @map("occurrence_count")
+  affectedNodes   Json      @default("[]") @map("affected_nodes")
+  analysis        Json      @default("{}")
+  lastSeenAt      DateTime? @map("last_seen_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@index([userId])
+  @@index([errorCategory])
+  @@map("error_patterns")
+}
+
+// ============================================
+// SRS 间隔复习调度（SM-2 算法）
+// ============================================
+model ReviewSchedule {
+  id            Int       @id @default(autoincrement())
+  subjectId     Int       @map("subject_id")
+  nodeId        Int       @map("node_id")
+  userId        Int       @map("user_id")
+  easeFactor    Float     @default(2.5) @map("ease_factor")
+  intervalDays  Int       @default(0) @map("interval_days")
+  repetitions   Int       @default(0)
+  nextReviewAt  DateTime  @map("next_review_at")
+  totalReviews  Int       @default(0) @map("total_reviews")
+  totalCorrect  Int       @default(0) @map("total_correct")
+  lastRating    Int?      @map("last_rating")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  subject Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  node    KnowledgeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, nodeId, userId])
+  @@index([nextReviewAt])
+  @@index([userId])
+  @@map("review_schedule")
 }
