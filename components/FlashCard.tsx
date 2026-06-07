@@ -20,6 +20,24 @@ export default function FlashCard({ cards: initialCards }: { cards: CardData[] }
     setFlipped(false);
   }, [index]);
 
+  // 键盘操作
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        setFlipped((f) => !f);
+      } else if (e.key === "ArrowLeft") {
+        prev();
+      } else if (e.key === "ArrowRight") {
+        next();
+      } else if (e.key === "s" || e.key === "S") {
+        speak();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index]);
+
   if (!cards.length) {
     return (
       <div className="text-center py-12 text-gray-400">
@@ -131,6 +149,10 @@ export default function FlashCard({ cards: initialCards }: { cards: CardData[] }
           下一个 ➡
         </button>
       </div>
-    </div>
-  );
-}
+      {/* 键盘提示 */}
+      <div className="hidden md:flex gap-4 text-xs text-gray-400 mt-6">
+        <span><kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">←</kbd> 上一个</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">→</kbd> 下一个</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">Space</kbd> 翻转</span>
+        <span><kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs">S</kbd> 朗读</span>
+      </div>

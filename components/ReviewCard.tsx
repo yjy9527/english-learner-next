@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Card {
   scheduleId: number;
@@ -39,6 +39,24 @@ export default function ReviewCard({
       setGraded(false);
     }
   }
+
+  // 键盘操作
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!graded && flipped) {
+        if (["0", "3", "4", "5"].includes(e.key)) {
+          handleGrade(Number(e.key));
+        }
+      }
+      if ([" ", "Enter"].includes(e.key)) {
+        e.preventDefault();
+        if (graded) onDone();
+        else setFlipped((f) => !f);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flipped, graded]);
 
   const ratingButtons = [
     { rating: 0, label: "完全忘了", color: "bg-red-500 hover:bg-red-600" },
